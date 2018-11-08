@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 
 #include "adios2/ADIOSTypes.h"
+#include "adios2/core/IO.h"
 #include "adios2/core/Variable.h"
 
 #include <mutex>
@@ -56,6 +57,7 @@ public:
     GetMetaData(const size_t step);
     const std::unordered_map<size_t, std::shared_ptr<std::vector<DataManVar>>>
     GetMetaData();
+    void GetAttributes(core::IO &io);
 
 private:
     bool HasOverlap(Dims in_start, Dims in_count, Dims out_start,
@@ -69,18 +71,9 @@ private:
     size_t m_MinStep = std::numeric_limits<size_t>::max();
     bool m_IsRowMajor;
     bool m_IsLittleEndian;
+    nlohmann::json m_GlobalVars;
 
     std::mutex m_Mutex;
-
-    struct VarDefaults
-    {
-        std::string doid;
-        bool isRowMajor;
-        bool isLittleEndian;
-        std::string type;
-        Dims shape;
-    };
-    std::map<std::string, VarDefaults> m_VarDefaultsMap;
 };
 
 } // end namespace format

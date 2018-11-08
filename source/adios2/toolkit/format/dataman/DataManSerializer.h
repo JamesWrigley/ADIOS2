@@ -14,10 +14,29 @@
 #include <nlohmann/json.hpp>
 
 #include "adios2/ADIOSTypes.h"
+#include "adios2/core/IO.h"
 #include "adios2/core/Variable.h"
 
 #include <mutex>
 #include <unordered_map>
+
+// A - Address
+// C - Count
+// D - Data Object ID or File Name
+// E - Endian
+// G - Global Value
+// H - Meatadata Hash
+// I - Data Size
+// M - Major
+// N - Variable Name
+// O - Start
+// P - Position of Memory Block
+// S - Shape
+// V - Is Single Value
+// X - Index (Used only in deserializer)
+// Y - Data Type
+// Z - Compression Method
+// ZP - Compression Parameters
 
 namespace adios2
 {
@@ -28,51 +47,53 @@ class DataManSerializer
 {
 public:
     DataManSerializer(bool isRowMajor, bool isLittleEndian);
+
     void New(size_t size);
+
     template <class T>
     void Put(const T *inputData, const std::string &varName,
              const Dims &varShape, const Dims &varStart, const Dims &varCount,
              const std::string &doid, const size_t step, const int rank,
-             const Params &params, const bool optimizeMetadata);
+             const std::string &address, const Params &params);
+
     template <class T>
     void Put(const core::Variable<T> &variable, const std::string &doid,
-             const size_t step, const int rank, const Params &params,
-             const bool optimizeMetadata);
+             const size_t step, const int rank, const std::string &address,
+             const Params &params);
+
+    void PutAttributes(core::IO &io, const int rank);
+
     const std::shared_ptr<std::vector<char>> Get();
+
     float GetMetaRatio();
+
     static std::shared_ptr<std::vector<char>> EndSignal(size_t step);
 
 private:
-    std::shared_ptr<std::vector<char>> m_Buffer;
-    std::vector<char> m_CompressBuffer;
-    size_t m_Position = 0;
-    bool m_IsRowMajor;
-    bool m_IsLittleEndian;
     template <class T>
     bool Zfp(nlohmann::json &metaj, size_t &datasize, const T *inputData,
              const Dims &varCount, const Params &params);
+
     template <class T>
     bool Sz(nlohmann::json &metaj, size_t &datasize, const T *inputData,
             const Dims &varCount, const Params &params);
+
     template <class T>
     bool BZip2(nlohmann::json &metaj, size_t &datasize, const T *inputData,
                const Dims &varCount, const Params &params);
 
+    template <class T>
+    void PutAttribute(const core::Attribute<T> &attribute, const int rank);
+
     bool IsCompressionAvailable(const std::string &method,
                                 const std::string &type, const Dims &count);
 
-    size_t m_TotalDataSize;
-    size_t m_TotalMetadataSize;
-
-    struct VarDefaults
-    {
-        std::string doid;
-        bool isRowMajor;
-        bool isLittleEndian;
-        std::string type;
-        Dims shape;
-    };
-    std::map<std::string, VarDefaults> m_VarDefaultsMap;
+    std::shared_ptr<std::vector<char>> m_Buffer;
+    nlohmann::json m_Metadata;
+    std::vector<char> m_CompressBuffer;
+    size_t m_Position = 0;
+    bool m_IsRowMajor;
+    bool m_IsLittleEndian;
 };
 
 } // end namespace format
